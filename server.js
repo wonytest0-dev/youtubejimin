@@ -14,7 +14,7 @@ const API_KEY = "AIzaSyC_UMdX8GXMFtNdzTFEyeRSoBpihnJRrEk";
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR5DvuIvno97yrcOv87g0JG00XQSYEtPcQKXmuUKmgaUnIGXsnGHoAcufNffWaVq1dMCVvGOMHP6bOo/pub?output=csv";
 
 
-// 🔥 TAMBAHAN: WIB TIME
+// 🔥 WIB TIME
 function getWIB(){
   const now = new Date();
   return new Date(now.getTime() + (7 * 60 * 60 * 1000));
@@ -74,9 +74,31 @@ async function fetchYouTubeData(){
       history = JSON.parse(fs.readFileSync("data.json"));
     }
 
-    // 🔥 UBAH: pakai WIB
     const now = getWIB();
     const hour = now.getHours();
+    const today = now.toISOString().split("T")[0];
+
+    // 🔥 file khusus buat simpan reset
+    let lastResetDate = null;
+
+    if(fs.existsSync("reset.json")){
+      const resetData = JSON.parse(fs.readFileSync("reset.json"));
+      lastResetDate = resetData.lastResetDate;
+    }
+
+    // 🔥 RESET 1x JAM 11
+    if(hour === 11 && lastResetDate !== today){
+
+      console.log("🔥 RESET SEKALI JAM 11");
+
+      Object.keys(history).forEach(id => {
+        history[id] = [];
+      });
+
+      fs.writeFileSync("reset.json", JSON.stringify({
+        lastResetDate: today
+      }));
+    }
 
     data.items.forEach(video => {
 
@@ -87,11 +109,6 @@ async function fetchYouTubeData(){
         history[id] = [];
       }
 
-      // 🔥 TAMBAHAN: RESET JAM 11 WIB
-      if(hour === 11){
-        history[id] = [];
-      }
-
       history[id].push({
         time: now,
         views: views,
@@ -99,7 +116,6 @@ async function fetchYouTubeData(){
         thumbnail: video.snippet.thumbnails.high.url
       });
 
-      // 🔥 SIMPAN MAX 24 DATA (24 JAM)
       history[id] = history[id].slice(-24);
 
     });
@@ -115,11 +131,7 @@ async function fetchYouTubeData(){
 
 
 // ================= AUTO RUN =================
-
-// jalan pertama kali
 fetchYouTubeData();
-
-// tiap 1 jam
 setInterval(fetchYouTubeData, 3600000);
 
 
