@@ -21,17 +21,19 @@ function getWIB(){
 }
 
 
-// ================= GET VIDEO IDS FROM SHEET =================
-async function getVideoIds(){
+// ================= GET VIDEO IDS + CATEGORY =================
+async function getVideoData(){
 
   const res = await fetch(SHEET_URL);
   const text = await res.text();
 
   const rows = text.split("\n").slice(1);
 
-  const ids = rows.map(r=>{
+  const videos = rows.map(r=>{
     const cols = r.replace("\r","").split(",");
+
     const link = cols[2];
+    const category = cols[3];
 
     if(!link) return null;
 
@@ -43,11 +45,14 @@ async function getVideoIds(){
       id = link.split("/").pop();
     }
 
-    return id.split("?")[0];
+    return {
+      id: id.split("?")[0],
+      category: category || "Others"
+    };
 
   }).filter(Boolean);
 
-  return ids;
+  return videos;
 }
 
 
@@ -56,7 +61,8 @@ async function fetchYouTubeData(){
 
   try{
 
-    const VIDEO_IDS = await getVideoIds();
+    const VIDEO_LIST = await getVideoData();
+    const VIDEO_IDS = VIDEO_LIST.map(v => v.id);
 
     if(VIDEO_IDS.length === 0){
       console.log("No video IDs");
@@ -78,7 +84,7 @@ async function fetchYouTubeData(){
     const hour = now.getHours();
     const today = now.toISOString().split("T")[0];
 
-    // 🔥 file khusus buat simpan reset
+    // 🔥 RESET CONTROL
     let lastResetDate = null;
 
     if(fs.existsSync("reset.json")){
@@ -86,7 +92,6 @@ async function fetchYouTubeData(){
       lastResetDate = resetData.lastResetDate;
     }
 
-    // 🔥 RESET 1x JAM 11
     if(hour === 11 && lastResetDate !== today){
 
       console.log("🔥 RESET SEKALI JAM 11");
@@ -105,6 +110,10 @@ async function fetchYouTubeData(){
       const id = video.id;
       const views = Number(video.statistics.viewCount);
 
+      // 🔥 ambil category dari sheet
+      const meta = VIDEO_LIST.find(v => v.id === id);
+      const category = meta?.category || "Others";
+
       if(!history[id]){
         history[id] = [];
       }
@@ -113,7 +122,8 @@ async function fetchYouTubeData(){
         time: now,
         views: views,
         title: video.snippet.title,
-        thumbnail: video.snippet.thumbnails.high.url
+        thumbnail: video.snippet.thumbnails.high.url,
+        category: category // 🔥 TAMBAHAN
       });
 
       history[id] = history[id].slice(-24);
