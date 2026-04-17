@@ -29,11 +29,14 @@ async function getVideoData(){
 
   const rows = text.trim().split(/\r?\n/).slice(1);
 
+  // 🔥 DEBUG (DITAMBAH)
+  console.log("ROWS:", rows.length);
+  if(rows[0]) console.log("FIRST ROW:", rows[0]);
+
   const videos = rows.map(r=>{
 
     const cols = r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
 
-    // 🔥 FIX MINIMAL (INI DOANG YANG DITAMBAH)
     let link = (cols[2] || "").trim();
 
     if(!link){
@@ -60,6 +63,9 @@ async function getVideoData(){
 
   }).filter(Boolean);
 
+  // 🔥 DEBUG (DITAMBAH)
+  console.log("VIDEO_IDS:", videos.map(v => v.id));
+
   return videos;
 }
 
@@ -71,8 +77,6 @@ async function fetchYouTubeData(){
 
     const VIDEO_LIST = await getVideoData();
     const VIDEO_IDS = VIDEO_LIST.map(v => v.id);
-
-    console.log("VIDEO_IDS:", VIDEO_IDS); // 🔥 DEBUG
 
     if(VIDEO_IDS.length === 0){
       console.log("No video IDs");
@@ -94,6 +98,7 @@ async function fetchYouTubeData(){
     const hour = now.getHours();
     const today = now.toISOString().split("T")[0];
 
+    // 🔥 RESET CONTROL
     let lastResetDate = null;
 
     if(fs.existsSync("reset.json")){
@@ -119,6 +124,7 @@ async function fetchYouTubeData(){
       const id = video.id;
       const views = Number(video.statistics.viewCount);
 
+      // 🔥 ambil category dari sheet
       const meta = VIDEO_LIST.find(v => v.id === id);
       const category = meta?.category || "Others";
 
