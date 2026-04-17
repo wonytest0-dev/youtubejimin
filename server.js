@@ -30,10 +30,12 @@ async function getVideoData(){
   const rows = text.split("\n").slice(1);
 
   const videos = rows.map(r=>{
-    const cols = r.replace("\r","").split(",");
 
-    const link = cols[2];
-    const category = cols[3];
+    // 🔥 FIX CSV (ANTI KOMA ERROR)
+    const cols = r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+
+    const link = (cols[2] || "").trim();
+    const category = (cols[3] || "").trim();
 
     if(!link) return null;
 
