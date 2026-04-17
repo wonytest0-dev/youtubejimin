@@ -31,9 +31,17 @@ async function getVideoData(){
 
   const videos = rows.map(r=>{
 
-    // 🔥 AMBIL LINK YOUTUBE LANGSUNG (ANTI ERROR CSV)
-    const match = r.match(/https?:\/\/(www\.)?(youtube\.com|youtu\.be)[^\s",]+/);
-    const link = match ? match[0] : "";
+    const cols = r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+
+    // 🔥 FIX MINIMAL (INI DOANG YANG DITAMBAH)
+    let link = (cols[2] || "").trim();
+
+    if(!link){
+      const found = cols.find(c => c.includes("youtu"));
+      link = found ? found.trim() : "";
+    }
+
+    const category = (cols[3] || "").trim();
 
     if(!link) return null;
 
@@ -45,20 +53,12 @@ async function getVideoData(){
       id = link.split("/").pop();
     }
 
-    id = id.split("?")[0];
-
-    // 🔥 AMBIL CATEGORY (KOLOM TERAKHIR)
-    const cols = r.split(",");
-    const category = (cols[cols.length - 1] || "").trim();
-
     return {
-      id,
+      id: id.split("?")[0],
       category: category || "Others"
     };
 
   }).filter(Boolean);
-
-  console.log("VIDEO_LIST:", videos);
 
   return videos;
 }
@@ -71,6 +71,8 @@ async function fetchYouTubeData(){
 
     const VIDEO_LIST = await getVideoData();
     const VIDEO_IDS = VIDEO_LIST.map(v => v.id);
+
+    console.log("VIDEO_IDS:", VIDEO_IDS); // 🔥 DEBUG
 
     if(VIDEO_IDS.length === 0){
       console.log("No video IDs");
@@ -92,7 +94,6 @@ async function fetchYouTubeData(){
     const hour = now.getHours();
     const today = now.toISOString().split("T")[0];
 
-    // 🔥 RESET CONTROL
     let lastResetDate = null;
 
     if(fs.existsSync("reset.json")){
@@ -118,7 +119,6 @@ async function fetchYouTubeData(){
       const id = video.id;
       const views = Number(video.statistics.viewCount);
 
-      // 🔥 ambil category dari sheet
       const meta = VIDEO_LIST.find(v => v.id === id);
       const category = meta?.category || "Others";
 
