@@ -27,11 +27,12 @@ async function getVideoData(){
   const res = await fetch(SHEET_URL);
   const text = await res.text();
 
-  const rows = text.split("\n").slice(1);
+  // 🔥 FIX LINE BREAK (INI PENTING BANGET)
+  const rows = text.trim().split(/\r?\n/).slice(1);
 
   const videos = rows.map(r=>{
 
-    // 🔥 FIX CSV (ANTI KOMA ERROR)
+    // 🔥 FIX CSV (ANTI KOMA DI TITLE)
     const cols = r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
 
     const link = (cols[2] || "").trim();
@@ -125,7 +126,7 @@ async function fetchYouTubeData(){
         views: views,
         title: video.snippet.title,
         thumbnail: video.snippet.thumbnails.high.url,
-        category: category // 🔥 TAMBAHAN
+        category: category
       });
 
       history[id] = history[id].slice(-24);
