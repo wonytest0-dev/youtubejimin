@@ -29,7 +29,6 @@ async function getVideoData(){
 
   const rows = text.trim().split(/\r?\n/).slice(1);
 
-  // 🔥 DEBUG (DITAMBAH)
   console.log("ROWS:", rows.length);
   if(rows[0]) console.log("FIRST ROW:", rows[0]);
 
@@ -63,7 +62,6 @@ async function getVideoData(){
 
   }).filter(Boolean);
 
-  // 🔥 DEBUG (DITAMBAH)
   console.log("VIDEO_IDS:", videos.map(v => v.id));
 
   return videos;
@@ -83,11 +81,6 @@ async function fetchYouTubeData(){
       return;
     }
 
-    const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${VIDEO_IDS.join(",")}&key=${API_KEY}`;
-
-    const res = await fetch(url);
-    const data = await res.json();
-
     let history = {};
 
     if(fs.existsSync("data.json")){
@@ -98,7 +91,6 @@ async function fetchYouTubeData(){
     const hour = now.getHours();
     const today = now.toISOString().split("T")[0];
 
-    // 🔥 RESET CONTROL
     let lastResetDate = null;
 
     if(fs.existsSync("reset.json")){
@@ -119,30 +111,44 @@ async function fetchYouTubeData(){
       }));
     }
 
-    data.items.forEach(video => {
+    // 🔥 FIX UTAMA: LOOP PER 50 + ANTI ERROR
+    for(let i = 0; i < VIDEO_IDS.length; i += 50){
 
-      const id = video.id;
-      const views = Number(video.statistics.viewCount);
+      const chunk = VIDEO_IDS.slice(i, i + 50);
 
-      // 🔥 ambil category dari sheet
-      const meta = VIDEO_LIST.find(v => v.id === id);
-      const category = meta?.category || "Others";
+      const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${chunk.join(",")}&key=${API_KEY}`;
 
-      if(!history[id]){
-        history[id] = [];
-      }
+      const res = await fetch(url);
+      const data = await res.json();
 
-      history[id].push({
-        time: now,
-        views: views,
-        title: video.snippet.title,
-        thumbnail: video.snippet.thumbnails.high.url,
-        category: category
+      data.items.forEach(video => {
+
+        // 🔥 ANTI CRASH
+        if(!video || !video.statistics || !video.snippet) return;
+
+        const id = video.id;
+        const views = Number(video.statistics.viewCount);
+
+        const meta = VIDEO_LIST.find(v => v.id === id);
+        const category = meta?.category || "Others";
+
+        if(!history[id]){
+          history[id] = [];
+        }
+
+        history[id].push({
+          time: now,
+          views: views,
+          title: video.snippet.title,
+          thumbnail: video.snippet.thumbnails.high.url,
+          category: category
+        });
+
+        history[id] = history[id].slice(-24);
+
       });
 
-      history[id] = history[id].slice(-24);
-
-    });
+    }
 
     fs.writeFileSync("data.json", JSON.stringify(history, null, 2));
 
