@@ -27,16 +27,13 @@ async function getVideoData(){
   const res = await fetch(SHEET_URL);
   const text = await res.text();
 
-  // 🔥 FIX LINE BREAK (INI PENTING BANGET)
   const rows = text.trim().split(/\r?\n/).slice(1);
 
   const videos = rows.map(r=>{
 
-    // 🔥 FIX CSV (ANTI KOMA DI TITLE)
-    const cols = r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-
-    const link = (cols[2] || "").trim();
-    const category = (cols[3] || "").trim();
+    // 🔥 AMBIL LINK YOUTUBE LANGSUNG (ANTI ERROR CSV)
+    const match = r.match(/https?:\/\/(www\.)?(youtube\.com|youtu\.be)[^\s",]+/);
+    const link = match ? match[0] : "";
 
     if(!link) return null;
 
@@ -48,12 +45,20 @@ async function getVideoData(){
       id = link.split("/").pop();
     }
 
+    id = id.split("?")[0];
+
+    // 🔥 AMBIL CATEGORY (KOLOM TERAKHIR)
+    const cols = r.split(",");
+    const category = (cols[cols.length - 1] || "").trim();
+
     return {
-      id: id.split("?")[0],
+      id,
       category: category || "Others"
     };
 
   }).filter(Boolean);
+
+  console.log("VIDEO_LIST:", videos);
 
   return videos;
 }
