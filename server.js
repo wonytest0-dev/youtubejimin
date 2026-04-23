@@ -98,13 +98,33 @@ async function fetchYouTubeData(){
       lastResetDate = resetData.lastResetDate;
     }
 
+    // ================= RESET 11 WIB =================
     if(hour === 11 && lastResetDate !== today){
 
       console.log("🔥 RESET SEKALI JAM 11");
 
+      // 🔥 simpan hasil kemarin
+      const yesterdayData = {};
+
       Object.keys(history).forEach(id => {
+
+        const arr = history[id];
+
+        const total = arr.reduce((sum, item) => {
+          return sum + (item.gained || 0);
+        }, 0);
+
+        yesterdayData[id] = total;
+
+        // reset history baru
         history[id] = [];
+
       });
+
+      fs.writeFileSync(
+        "daily.json",
+        JSON.stringify(yesterdayData, null, 2)
+      );
 
       fs.writeFileSync("reset.json", JSON.stringify({
         lastResetDate: today
@@ -136,9 +156,22 @@ async function fetchYouTubeData(){
           history[id] = [];
         }
 
+        // 🔥 HITUNG PERTAMBAHAN VIEWS
+        let gained = 0;
+
+        if(history[id].length > 0){
+
+          const lastViews =
+            history[id][history[id].length - 1].views;
+
+          gained = views - lastViews;
+
+        }
+
         history[id].push({
           time: now,
           views: views,
+          gained: gained < 0 ? 0 : gained,
           title: video.snippet.title,
           thumbnail: video.snippet.thumbnails.high.url,
           category: category
@@ -171,8 +204,32 @@ app.get("/data", (req, res) => {
   try{
 
     if(fs.existsSync("data.json")){
+
       const data = JSON.parse(fs.readFileSync("data.json"));
-      res.json(data);
+
+      // 🔥 hasil kemarin
+      let yesterdayTotals = {};
+
+      if(fs.existsSync("daily.json")){
+        yesterdayTotals =
+          JSON.parse(fs.readFileSync("daily.json"));
+      }
+
+      const result = {};
+
+      Object.keys(data).forEach(id => {
+
+        result[id] = {
+          history: data[id],
+
+          // 🔥 tampilkan hasil FINAL kemarin
+          total24h: yesterdayTotals[id] || 0
+        };
+
+      });
+
+      res.json(result);
+
     }else{
       res.json({});
     }
