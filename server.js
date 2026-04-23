@@ -212,10 +212,14 @@ app.get("/data", (req, res) => {
       // 🔥 tetap format lama
       Object.keys(data).forEach(id => {
 
-        data[id].total24h =
-          yesterdayTotals[id] || 0;
+  data[id].forEach(item => {
 
-      });
+    item.total24h =
+      yesterdayTotals[id] || 0;
+
+  });
+
+});
 
       res.json(data);
 
