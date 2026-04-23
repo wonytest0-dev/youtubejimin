@@ -103,16 +103,23 @@ async function fetchYouTubeData(){
 
       console.log("🔥 RESET SEKALI JAM 11");
 
-      // 🔥 simpan hasil kemarin
+      // 🔥 simpan hasil daily kemarin
       const yesterdayData = {};
 
       Object.keys(history).forEach(id => {
 
         const arr = history[id];
 
-        const total = arr.reduce((sum, item) => {
-          return sum + (item.gained || 0);
-        }, 0);
+        let total = 0;
+
+        for(let i = 1; i < arr.length; i++){
+
+          const current = arr[i].views || 0;
+          const prev = arr[i - 1].views || 0;
+
+          total += (current - prev);
+
+        }
 
         yesterdayData[id] = total;
 
@@ -131,7 +138,7 @@ async function fetchYouTubeData(){
       }));
     }
 
-    // 🔥 FIX UTAMA: LOOP PER 50 + ANTI ERROR
+    // 🔥 LOOP PER 50 + ANTI ERROR
     for(let i = 0; i < VIDEO_IDS.length; i += 50){
 
       const chunk = VIDEO_IDS.slice(i, i + 50);
@@ -156,22 +163,9 @@ async function fetchYouTubeData(){
           history[id] = [];
         }
 
-        // 🔥 HITUNG PERTAMBAHAN VIEWS
-        let gained = 0;
-
-        if(history[id].length > 0){
-
-          const lastViews =
-            history[id][history[id].length - 1].views;
-
-          gained = views - lastViews;
-
-        }
-
         history[id].push({
           time: now,
           views: views,
-          gained: gained < 0 ? 0 : gained,
           title: video.snippet.title,
           thumbnail: video.snippet.thumbnails.high.url,
           category: category
@@ -207,7 +201,7 @@ app.get("/data", (req, res) => {
 
       const data = JSON.parse(fs.readFileSync("data.json"));
 
-      // 🔥 hasil kemarin
+      // 🔥 hasil daily kemarin
       let yesterdayTotals = {};
 
       if(fs.existsSync("daily.json")){
@@ -215,20 +209,15 @@ app.get("/data", (req, res) => {
           JSON.parse(fs.readFileSync("daily.json"));
       }
 
-      const result = {};
-
+      // 🔥 tetap format lama
       Object.keys(data).forEach(id => {
 
-        result[id] = {
-          history: data[id],
-
-          // 🔥 tampilkan hasil FINAL kemarin
-          total24h: yesterdayTotals[id] || 0
-        };
+        data[id].total24h =
+          yesterdayTotals[id] || 0;
 
       });
 
-      res.json(result);
+      res.json(data);
 
     }else{
       res.json({});
